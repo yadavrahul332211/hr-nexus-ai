@@ -1,4 +1,4 @@
-import { Bell, Search, Moon, Sun } from "lucide-react";
+import { Bell, Search, Moon, Sun, Menu } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
 
-export function TopNav() {
+interface TopNavProps { onMenuClick?: () => void }
+export function TopNav({ onMenuClick }: TopNavProps) {
   const [dark, setDark] = useState(() => document.documentElement.classList.contains("dark"));
   const navigate = useNavigate();
 
@@ -17,10 +18,17 @@ export function TopNav() {
   }, [dark]);
 
   return (
-    <header className="h-16 border-b border-border bg-card/50 backdrop-blur-lg flex items-center justify-between px-6 shrink-0">
-      <div className="relative w-72">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input placeholder="Search anything..." className="pl-9 bg-secondary/50 border-0 focus-visible:ring-1" />
+    <header className="h-16 border-b border-border bg-card/50 backdrop-blur-lg flex items-center justify-between px-4 md:px-6 shrink-0 gap-3">
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        {onMenuClick && (
+          <Button variant="ghost" size="icon" onClick={onMenuClick} className="md:hidden shrink-0">
+            <Menu className="w-5 h-5" />
+          </Button>
+        )}
+        <div className="relative w-full max-w-xs hidden sm:block">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input placeholder="Search anything..." className="pl-9 bg-secondary/50 border-0 focus-visible:ring-1" />
+        </div>
       </div>
 
       <div className="flex items-center gap-2">

@@ -24,6 +24,10 @@ import AIChatPage from "@/pages/AIChatPage";
 import AIATSPage from "@/pages/AIATSPage";
 import AIInsightsPage from "@/pages/AIInsightsPage";
 import AIInterviewPage from "@/pages/AIInterviewPage";
+import AICCTVPage from "@/pages/AICCTVPage";
+import AIRecruiterCopilotPage from "@/pages/AIRecruiterCopilotPage";
+import AIPredictivePage from "@/pages/AIPredictivePage";
+import AIDocumentIntelligencePage from "@/pages/AIDocumentIntelligencePage";
 import LoginPage from "@/pages/LoginPage";
 import NotFound from "@/pages/NotFound";
 
@@ -58,6 +62,10 @@ const App = () => (
             <Route path="/ai/ats" element={<AIATSPage />} />
             <Route path="/ai/insights" element={<AIInsightsPage />} />
             <Route path="/ai/interview" element={<AIInterviewPage />} />
+            <Route path="/ai/cctv" element={<AICCTVPage />} />
+            <Route path="/ai/copilot" element={<AIRecruiterCopilotPage />} />
+            <Route path="/ai/predictive" element={<AIPredictivePage />} />
+            <Route path="/ai/documents" element={<AIDocumentIntelligencePage />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
