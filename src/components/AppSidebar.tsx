@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, Users, UserSearch, Clock, DollarSign, BarChart3, MessageSquare,
   ChevronLeft, Sparkles, Brain, Briefcase, UserPlus, GraduationCap, Heart,
-  Shield, FileText, Monitor, PieChart, UserMinus, Globe, Video
+  Shield, FileText, Monitor, PieChart, UserMinus, Globe, Video, Camera, Bot, TrendingDown, ScanLine
 } from "lucide-react";
 
 const navItems = [
@@ -31,6 +31,10 @@ const hrModules = [
 const aiFeatures = [
   { label: "AI Chat", icon: MessageSquare, path: "/ai-chat" },
   { label: "AI Interview", icon: Video, path: "/ai/interview" },
+  { label: "AI CCTV", icon: Camera, path: "/ai/cctv" },
+  { label: "Recruiter Copilot", icon: Bot, path: "/ai/copilot" },
+  { label: "Predictive", icon: TrendingDown, path: "/ai/predictive" },
+  { label: "Doc Intelligence", icon: ScanLine, path: "/ai/documents" },
   { label: "Resume ATS", icon: Brain, path: "/ai/ats" },
   { label: "AI Insights", icon: Sparkles, path: "/ai/insights" },
 ];
