@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import {
   Users, Briefcase, CalendarCheck, Target, Clock, DollarSign,
   TrendingUp, AlertTriangle, Award, Sparkles, CheckCircle2, FileText,
-  UserCheck, Activity
+  UserCheck, Activity, Info
 } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import {
@@ -13,33 +13,53 @@ import { useAuthStore, roleLabel } from "@/stores/authStore";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow
+} from "@/components/ui/table";
+import {
+  employees, candidates, weeklyAttendance, payrollRows, payrollTrend,
+  leaveRequests, departmentSplit, hiringTrend, aiInsightsByRole,
+  myAttendance, myPayslip, myTasks, fmtMoney, stageColor
+} from "@/data/mockHr";
 
-const COLORS = ["hsl(174,72%,40%)", "hsl(262,60%,55%)", "hsl(38,92%,50%)", "hsl(210,80%,55%)", "hsl(152,60%,42%)"];
+const COLORS = ["hsl(174,72%,40%)", "hsl(262,60%,55%)", "hsl(38,92%,50%)", "hsl(210,80%,55%)", "hsl(152,60%,42%)", "hsl(340,72%,55%)"];
 const tooltip = { background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 };
 const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.06 } } };
 
+function InsightList({ role }: { role: "admin" | "manager" | "employee" }) {
+  const icons = {
+    positive: <TrendingUp className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />,
+    warn: <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />,
+    primary: <Award className="w-4 h-4 text-primary mt-0.5 shrink-0" />,
+    info: <Info className="w-4 h-4 text-purple-500 mt-0.5 shrink-0" />,
+  };
+  return (
+    <div className="glass-card rounded-xl p-5">
+      <div className="flex items-center gap-2 mb-3">
+        <Sparkles className="w-4 h-4 text-primary" />
+        <h3 className="font-semibold">AI Insights</h3>
+      </div>
+      <ul className="space-y-3 text-sm">
+        {aiInsightsByRole[role].map((i, idx) => (
+          <li key={idx} className="flex gap-2">{icons[i.tone]} {i.text}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 /* ---------------- ADMIN ---------------- */
 function AdminDashboard() {
-  const hiring = [
-    { month: "Jan", hired: 12, left: 3 }, { month: "Feb", hired: 8, left: 2 },
-    { month: "Mar", hired: 15, left: 4 }, { month: "Apr", hired: 10, left: 1 },
-    { month: "May", hired: 18, left: 5 }, { month: "Jun", hired: 14, left: 2 },
-  ];
-  const dept = [
-    { name: "Engineering", value: 45 }, { name: "Design", value: 15 },
-    { name: "Marketing", value: 20 }, { name: "Sales", value: 25 }, { name: "HR", value: 10 },
-  ];
-  const payroll = [
-    { m: "Jan", v: 420 }, { m: "Feb", v: 435 }, { m: "Mar", v: 460 },
-    { m: "Apr", v: 478 }, { m: "May", v: 495 }, { m: "Jun", v: 512 },
-  ];
+  const totalWorkforce = departmentSplit.reduce((a, b) => a + b.value, 0);
+  const openCandidates = candidates.filter(c => !["Hired", "Rejected"].includes(c.stage)).length;
+  const monthlyPayroll = payrollRows.reduce((a, b) => a + b.net, 0) * 12; // scale up
 
   return (
     <>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Workforce" value="1,248" change="+12 this month" changeType="up" icon={Users} />
-        <StatCard title="Open Positions" value="23" change="5 closing soon" changeType="neutral" icon={Briefcase} />
-        <StatCard title="Monthly Payroll" value="$512K" change="+3.4% vs May" changeType="up" icon={DollarSign} />
+        <StatCard title="Total Workforce" value={totalWorkforce.toLocaleString()} change="+12 this month" changeType="up" icon={Users} />
+        <StatCard title="Open Pipeline" value={String(openCandidates)} change="5 in interview" changeType="neutral" icon={Briefcase} />
+        <StatCard title="Monthly Payroll" value={fmtMoney(monthlyPayroll / 12)} change="+3.4% vs May" changeType="up" icon={DollarSign} />
         <StatCard title="Attrition Risk" value="4.8%" change="-0.6% vs Q1" changeType="up" icon={AlertTriangle} />
       </div>
 
@@ -47,7 +67,7 @@ function AdminDashboard() {
         <div className="lg:col-span-2 glass-card rounded-xl p-5">
           <h3 className="font-semibold mb-4">Hiring vs Attrition</h3>
           <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={hiring}>
+            <BarChart data={hiringTrend}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} />
               <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
@@ -59,14 +79,22 @@ function AdminDashboard() {
         </div>
         <div className="glass-card rounded-xl p-5">
           <h3 className="font-semibold mb-4">Department Split</h3>
-          <ResponsiveContainer width="100%" height={280}>
+          <ResponsiveContainer width="100%" height={240}>
             <PieChart>
-              <Pie data={dept} cx="50%" cy="50%" innerRadius={60} outerRadius={90} dataKey="value" paddingAngle={4}>
-                {dept.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+              <Pie data={departmentSplit} cx="50%" cy="50%" innerRadius={55} outerRadius={85} dataKey="value" paddingAngle={3}>
+                {departmentSplit.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
               </Pie>
               <Tooltip contentStyle={tooltip} />
             </PieChart>
           </ResponsiveContainer>
+          <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
+            {departmentSplit.map((d, i) => (
+              <span key={d.name} className="text-[11px] flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full" style={{ background: COLORS[i % COLORS.length] }} />
+                {d.name}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -74,7 +102,7 @@ function AdminDashboard() {
         <div className="lg:col-span-2 glass-card rounded-xl p-5">
           <h3 className="font-semibold mb-4">Payroll Forecast (in $K)</h3>
           <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={payroll}>
+            <AreaChart data={payrollTrend}>
               <defs>
                 <linearGradient id="pg" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="hsl(262,60%,55%)" stopOpacity={0.4} />
@@ -89,17 +117,72 @@ function AdminDashboard() {
             </AreaChart>
           </ResponsiveContainer>
         </div>
-        <div className="glass-card rounded-xl p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <Sparkles className="w-4 h-4 text-primary" />
-            <h3 className="font-semibold">AI Insights</h3>
+        <InsightList role="admin" />
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <div className="glass-card rounded-xl p-5 overflow-hidden">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold">Recent Hires</h3>
+            <Badge variant="secondary">{employees.length} active</Badge>
           </div>
-          <ul className="space-y-3 text-sm">
-            <li className="flex gap-2"><TrendingUp className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" /> Engineering productivity up 8% this sprint.</li>
-            <li className="flex gap-2"><AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" /> 14 employees show burnout risk — review workloads.</li>
-            <li className="flex gap-2"><Award className="w-4 h-4 text-primary mt-0.5 shrink-0" /> Suggest promotion for 3 high-performers in Sales.</li>
-            <li className="flex gap-2"><Activity className="w-4 h-4 text-purple-500 mt-0.5 shrink-0" /> Predicted attrition: 6 likely exits in Q3.</li>
-          </ul>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Employee</TableHead>
+                  <TableHead>Department</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Salary</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {employees.slice(0, 6).map((e) => (
+                  <TableRow key={e.id}>
+                    <TableCell>
+                      <div className="text-sm font-medium">{e.name}</div>
+                      <div className="text-xs text-muted-foreground">{e.role}</div>
+                    </TableCell>
+                    <TableCell className="text-sm">{e.department}</TableCell>
+                    <TableCell><Badge variant="secondary" className="text-[10px]">{e.status}</Badge></TableCell>
+                    <TableCell className="text-right text-sm">{fmtMoney(e.salary)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+
+        <div className="glass-card rounded-xl p-5 overflow-hidden">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold">AI-Ranked Pipeline</h3>
+            <Badge variant="secondary">Top {candidates.length}</Badge>
+          </div>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Candidate</TableHead>
+                  <TableHead>Stage</TableHead>
+                  <TableHead className="text-right">AI Score</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {candidates.slice(0, 6).map((c) => (
+                  <TableRow key={c.id}>
+                    <TableCell>
+                      <div className="text-sm font-medium">{c.name}</div>
+                      <div className="text-xs text-muted-foreground">{c.role}</div>
+                    </TableCell>
+                    <TableCell><span className={`text-[10px] px-2 py-0.5 rounded ${stageColor(c.stage)}`}>{c.stage}</span></TableCell>
+                    <TableCell className="text-right">
+                      <span className="text-sm font-semibold gradient-text">{c.aiScore}</span>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       </div>
     </>
@@ -108,37 +191,28 @@ function AdminDashboard() {
 
 /* ---------------- MANAGER ---------------- */
 function ManagerDashboard() {
-  const team = [
-    { name: "Alice", score: 92 }, { name: "Bob", score: 78 }, { name: "Carol", score: 85 },
-    { name: "Dan", score: 64 }, { name: "Eve", score: 88 }, { name: "Frank", score: 73 },
-  ];
-  const week = [
-    { d: "Mon", v: 92 }, { d: "Tue", v: 96 }, { d: "Wed", v: 89 },
-    { d: "Thu", v: 94 }, { d: "Fri", v: 85 },
-  ];
-  const approvals = [
-    { who: "Alice K.", type: "Leave Request", days: "3 days" },
-    { who: "Bob M.", type: "Expense", days: "$420" },
-    { who: "Carol P.", type: "Remote Work", days: "1 week" },
-  ];
+  const team = employees.filter((e) => e.manager === "John Doe");
+  const teamPerf = team.map((e) => ({ name: e.name.split(" ")[0], score: Math.round(e.performance * 10) }));
+  const avgPerf = (team.reduce((a, b) => a + b.performance, 0) / team.length).toFixed(1);
+  const avgAttendance = (team.reduce((a, b) => a + b.attendanceRate, 0) / team.length).toFixed(1);
 
   return (
     <>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Team Size" value="14" change="2 new this quarter" changeType="up" icon={Users} />
-        <StatCard title="Pending Approvals" value="7" change="3 urgent" changeType="neutral" icon={CheckCircle2} />
-        <StatCard title="Team Attendance" value="91.4%" change="+2% WoW" changeType="up" icon={CalendarCheck} />
-        <StatCard title="Avg Performance" value="8.1/10" change="+0.4 vs Q1" changeType="up" icon={Target} />
+        <StatCard title="Team Size" value={String(team.length)} change="2 new this quarter" changeType="up" icon={Users} />
+        <StatCard title="Pending Approvals" value={String(leaveRequests.filter(l => l.status === "Pending").length)} change="3 urgent" changeType="neutral" icon={CheckCircle2} />
+        <StatCard title="Team Attendance" value={`${avgAttendance}%`} change="+2% WoW" changeType="up" icon={CalendarCheck} />
+        <StatCard title="Avg Performance" value={`${avgPerf}/10`} change="+0.4 vs Q1" changeType="up" icon={Target} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 glass-card rounded-xl p-5">
           <h3 className="font-semibold mb-4">Team Performance Score</h3>
           <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={team} layout="vertical">
+            <BarChart data={teamPerf} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis type="number" domain={[0, 100]} stroke="hsl(var(--muted-foreground))" fontSize={12} />
-              <YAxis type="category" dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} width={60} />
+              <YAxis type="category" dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} width={70} />
               <Tooltip contentStyle={tooltip} />
               <Bar dataKey="score" fill="hsl(174,72%,40%)" radius={[0, 4, 4, 0]} />
             </BarChart>
@@ -147,13 +221,13 @@ function ManagerDashboard() {
         <div className="glass-card rounded-xl p-5">
           <h3 className="font-semibold mb-4">Pending Approvals</h3>
           <div className="space-y-3">
-            {approvals.map((a) => (
-              <div key={a.who} className="flex items-center justify-between p-3 rounded-lg bg-secondary/40">
-                <div>
-                  <p className="text-sm font-medium">{a.who}</p>
-                  <p className="text-xs text-muted-foreground">{a.type} · {a.days}</p>
+            {leaveRequests.map((a) => (
+              <div key={a.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/40">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{a.employeeName}</p>
+                  <p className="text-xs text-muted-foreground">{a.type} · {a.days}d · {a.from}</p>
                 </div>
-                <div className="flex gap-1">
+                <div className="flex gap-1 shrink-0">
                   <Button size="sm" variant="outline" className="h-7 px-2 text-xs">Deny</Button>
                   <Button size="sm" className="h-7 px-2 text-xs">Approve</Button>
                 </div>
@@ -165,27 +239,65 @@ function ManagerDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 glass-card rounded-xl p-5">
-          <h3 className="font-semibold mb-4">Weekly Team Attendance</h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={week}>
+          <h3 className="font-semibold mb-4">Team Attendance — This Week</h3>
+          <ResponsiveContainer width="100%" height={220}>
+            <LineChart data={weeklyAttendance.map((w, i) => ({
+              d: w.d,
+              attendance: Math.round(85 + Math.cos(i) * 4 + i),
+            }))}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="d" stroke="hsl(var(--muted-foreground))" fontSize={12} />
               <YAxis domain={[80, 100]} stroke="hsl(var(--muted-foreground))" fontSize={12} />
               <Tooltip contentStyle={tooltip} />
-              <Line type="monotone" dataKey="v" stroke="hsl(174,72%,40%)" strokeWidth={2} dot={{ r: 4 }} />
+              <Line type="monotone" dataKey="attendance" stroke="hsl(174,72%,40%)" strokeWidth={2} dot={{ r: 4 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
-        <div className="glass-card rounded-xl p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <Sparkles className="w-4 h-4 text-primary" />
-            <h3 className="font-semibold">AI Suggestions</h3>
-          </div>
-          <ul className="space-y-3 text-sm">
-            <li className="flex gap-2"><AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" /> Dan shows declining engagement — schedule a 1:1.</li>
-            <li className="flex gap-2"><Award className="w-4 h-4 text-primary mt-0.5 shrink-0" /> Alice ready for a senior-level project.</li>
-            <li className="flex gap-2"><TrendingUp className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" /> Team velocity up 12% this sprint.</li>
-          </ul>
+        <InsightList role="manager" />
+      </div>
+
+      <div className="glass-card rounded-xl p-5 overflow-hidden">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold">My Direct Reports</h3>
+          <Badge variant="secondary">{team.length} members</Badge>
+        </div>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Member</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Productivity</TableHead>
+                <TableHead>Burnout</TableHead>
+                <TableHead className="text-right">Performance</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {team.map((e) => (
+                <TableRow key={e.id}>
+                  <TableCell>
+                    <div className="text-sm font-medium">{e.name}</div>
+                    <div className="text-xs text-muted-foreground">{e.role}</div>
+                  </TableCell>
+                  <TableCell><Badge variant="secondary" className="text-[10px]">{e.status}</Badge></TableCell>
+                  <TableCell className="w-40">
+                    <div className="flex items-center gap-2">
+                      <Progress value={e.productivity} className="h-1.5" />
+                      <span className="text-xs text-muted-foreground">{e.productivity}%</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary" className={
+                      e.burnoutRisk === "high" ? "bg-destructive/15 text-destructive text-[10px]" :
+                      e.burnoutRisk === "medium" ? "bg-amber-500/15 text-amber-500 text-[10px]" :
+                      "bg-emerald-500/15 text-emerald-500 text-[10px]"
+                    }>{e.burnoutRisk}</Badge>
+                  </TableCell>
+                  <TableCell className="text-right text-sm font-semibold">{e.performance}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       </div>
     </>
@@ -194,21 +306,18 @@ function ManagerDashboard() {
 
 /* ---------------- EMPLOYEE ---------------- */
 function EmployeeDashboard() {
-  const productivity = [
-    { d: "Mon", v: 78 }, { d: "Tue", v: 85 }, { d: "Wed", v: 91 },
-    { d: "Thu", v: 82 }, { d: "Fri", v: 88 },
-  ];
-  const goals = [
-    { name: "OKR Q2", value: 72, fill: "hsl(174,72%,40%)" },
-  ];
+  const me = employees[0]; // Alice as default
+  const productivity = myAttendance.map((a) => ({ d: a.d, v: Math.round(a.hours * 11) }));
+  const goals = [{ name: "OKR Q2", value: 72, fill: "hsl(174,72%,40%)" }];
+  const totalHours = myAttendance.reduce((a, b) => a + b.hours, 0).toFixed(1);
 
   return (
     <>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Hours This Week" value="38h" change="2h to go" changeType="neutral" icon={Clock} />
+        <StatCard title="Hours This Week" value={`${totalHours}h`} change="2h to go" changeType="neutral" icon={Clock} />
         <StatCard title="Leave Balance" value="14 days" change="3 used in Q2" changeType="up" icon={CalendarCheck} />
-        <StatCard title="Performance" value="8.6/10" change="Top 15%" changeType="up" icon={Target} />
-        <StatCard title="Next Payday" value="Jun 30" change="$5,420 expected" changeType="neutral" icon={DollarSign} />
+        <StatCard title="Performance" value={`${me.performance}/10`} change="Top 15%" changeType="up" icon={Target} />
+        <StatCard title="Next Payday" value={myPayslip.payDate} change={`${fmtMoney(myPayslip.net)} net`} changeType="neutral" icon={DollarSign} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -242,7 +351,60 @@ function EmployeeDashboard() {
         </div>
       </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="glass-card rounded-xl p-5">
+          <h3 className="font-semibold mb-4">My Attendance</h3>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Day</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Hours</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {myAttendance.map((a) => (
+                <TableRow key={a.d}>
+                  <TableCell className="text-sm">{a.d}</TableCell>
+                  <TableCell><Badge variant="secondary" className="text-[10px]">{a.status}</Badge></TableCell>
+                  <TableCell className="text-right text-sm">{a.hours}h</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+
+        <div className="glass-card rounded-xl p-5">
+          <h3 className="font-semibold mb-4">My Tasks</h3>
+          <ul className="space-y-2">
+            {myTasks.map((t) => (
+              <li key={t.id} className="flex items-start gap-2 p-2 rounded-lg hover:bg-secondary/40 transition-colors">
+                <CheckCircle2 className={`w-4 h-4 mt-0.5 shrink-0 ${t.done ? "text-emerald-500" : "text-muted-foreground"}`} />
+                <div className="flex-1 min-w-0">
+                  <p className={`text-sm ${t.done ? "line-through text-muted-foreground" : ""}`}>{t.title}</p>
+                  <p className="text-xs text-muted-foreground">Due {t.due}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <InsightList role="employee" />
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="glass-card rounded-xl p-5">
+          <h3 className="font-semibold mb-4">Latest Payslip</h3>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between"><span className="text-muted-foreground">Base salary</span><span>{fmtMoney(myPayslip.base)}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Performance bonus</span><span className="text-emerald-500">+{fmtMoney(myPayslip.bonus)}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Tax & deductions</span><span className="text-destructive">-{fmtMoney(myPayslip.deductions)}</span></div>
+            <div className="border-t border-border pt-2 mt-2 flex justify-between font-semibold">
+              <span>Net pay</span><span className="gradient-text">{fmtMoney(myPayslip.net)}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Pay date: {myPayslip.payDate}</p>
+          </div>
+        </div>
         <div className="glass-card rounded-xl p-5">
           <h3 className="font-semibold mb-4">Quick Actions</h3>
           <div className="grid grid-cols-2 gap-2">
@@ -251,15 +413,11 @@ function EmployeeDashboard() {
             <Button variant="outline" className="justify-start"><UserCheck className="w-4 h-4 mr-2" /> Clock In</Button>
             <Button variant="outline" className="justify-start"><Target className="w-4 h-4 mr-2" /> Update Goals</Button>
           </div>
-        </div>
-        <div className="glass-card rounded-xl p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <Sparkles className="w-4 h-4 text-primary" />
-            <h3 className="font-semibold">AI Wellness Check</h3>
+          <div className="mt-4 pt-4 border-t border-border">
+            <p className="text-xs text-muted-foreground mb-2">Wellness score</p>
+            <Progress value={82} className="mb-1" />
+            <p className="text-[11px] text-muted-foreground">82/100 · keep taking your evening breaks 🌿</p>
           </div>
-          <p className="text-sm text-muted-foreground mb-3">Your work-life balance score is healthy.</p>
-          <Progress value={82} className="mb-2" />
-          <p className="text-xs text-muted-foreground">82/100 · keep taking your evening breaks 🌿</p>
         </div>
       </div>
     </>
