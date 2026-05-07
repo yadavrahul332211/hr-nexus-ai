@@ -30,6 +30,7 @@ import AIPredictivePage from "@/pages/AIPredictivePage";
 import AIDocumentIntelligencePage from "@/pages/AIDocumentIntelligencePage";
 import LoginPage from "@/pages/LoginPage";
 import NotFound from "@/pages/NotFound";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route element={<ProtectedRoute />}>
           <Route element={<DashboardLayout />}>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/hiring" element={<HiringPlanningPage />} />
@@ -66,6 +68,7 @@ const App = () => (
             <Route path="/ai/copilot" element={<AIRecruiterCopilotPage />} />
             <Route path="/ai/predictive" element={<AIPredictivePage />} />
             <Route path="/ai/documents" element={<AIDocumentIntelligencePage />} />
+          </Route>
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
